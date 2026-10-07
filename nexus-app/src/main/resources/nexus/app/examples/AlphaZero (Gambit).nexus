@@ -1,0 +1,16 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "AlphaZero (Gambit)",
+  "nodes": [
+    { "id": "n1", "type": "game.model", "x": 40.0, "y": 60.0, "params": { "game": "connect4" }, "title": "Gambit network" },
+    { "id": "n2", "type": "game.play", "x": 380.0, "y": 20.0, "params": { "game": "connect4", "simulations": 600.0, "you": "watch AI vs AI" } },
+    { "id": "n3", "type": "game.arena", "x": 880.0, "y": 20.0, "params": { "simsA": 100.0, "simsB": 1000.0, "games": 20.0 }, "title": "AlphaZero vs classic MCTS" },
+    { "id": "n4", "type": "game.solve", "x": 880.0, "y": 380.0, "params": { "moves": "1141744616" } }
+  ],
+  "edges": [
+    { "from": "n1.model", "to": "n2.model" },
+    { "from": "n1.model", "to": "n3.a" }
+  ],
+  "view": { "x": 0, "y": 0, "zoom": 1 }
+}

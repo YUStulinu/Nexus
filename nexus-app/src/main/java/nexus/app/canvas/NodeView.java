@@ -64,6 +64,9 @@ public final class NodeView extends Region {
             case "chat-session" -> 380;
             case "duel" -> 560;
             case "search-hits" -> 420;
+            case "game-board" -> 460;
+            case "training" -> 520;
+            case "arena" -> 400;
             case "table", "list" -> 290;
             default -> 236;
         };

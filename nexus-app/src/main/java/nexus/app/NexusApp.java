@@ -68,7 +68,7 @@ import nexus.core.registry.NodeRegistry;
 public class NexusApp extends Application {
     public static final List<String> EXAMPLES = List.of("Text analysis", "Parallel branches", "Formula", "Brief and quiz with Ember",
                                                         "Model duel", "Chat with a document",
-                                                        "Ask your documents");
+                                                        "Ask your documents", "AlphaZero (Gambit)");
 
     /** Extra services and node libraries, contributed by other modules before launch. */
     public static final Services SERVICES = new Services();
@@ -95,6 +95,7 @@ public class NexusApp extends Application {
         this.stage = stage;
         nexus.app.views.LlmViews.register();
         nexus.app.views.RagViews.register();
+        nexus.app.views.GameViews.register();
         var engines = nexus.engines.EngineManager.instance();
         SERVICES.register(nexus.engines.EngineManager.class, engines);
         var registry = NodeRegistry.discover();

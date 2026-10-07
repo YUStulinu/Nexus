@@ -7,3 +7,5 @@ out/
 runs/
 *.log
 /data/
+bin/
+obj/
