@@ -10,6 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * type, so the core does not depend on any of them.
  */
 public final class Services {
+    /** No services yet; modules register theirs. */
+    public Services() {
+    }
+
     private final Map<Class<?>, Object> services = new ConcurrentHashMap<>();
 
     public <T> Services register(Class<T> type, T service) {

@@ -12,6 +12,10 @@ import nexus.core.graph.NodeDefinition;
 
 /** All the node types the application knows, by id and by palette category. */
 public final class NodeRegistry {
+    /** An empty registry. */
+    public NodeRegistry() {
+    }
+
     private final Map<String, NodeDefinition> byId = new LinkedHashMap<>();
     private final List<String> libraries = new ArrayList<>();
 

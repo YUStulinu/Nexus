@@ -34,6 +34,10 @@ import nexus.core.util.TextUtil;
 
 /** The general-purpose nodes: text and numbers, files, the web, and views. */
 public final class BasicNodes implements NodeLibrary {
+    /** Found by the ServiceLoader. */
+    public BasicNodes() {
+    }
+
     @Override
     public String name() {
         return "Basics";

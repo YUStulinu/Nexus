@@ -21,6 +21,10 @@ import nexus.core.types.DataTypes;
  * {@link #snapshot() snapshots}, so a running workflow is never affected by later edits.
  */
 public final class Graph {
+    /** An empty graph. */
+    public Graph() {
+    }
+
     private final Map<String, NodeInstance> nodes = new LinkedHashMap<>();
     private final List<Edge> edges = new ArrayList<>();
     private final List<GraphListener> listeners = new CopyOnWriteArrayList<>();

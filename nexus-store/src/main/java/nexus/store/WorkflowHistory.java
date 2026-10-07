@@ -192,7 +192,7 @@ public final class WorkflowHistory implements AutoCloseable {
         for (var e : store.scan("run/" + key(workflow) + "/", 100_000)) {
             var n = JSON.readTree(e.getValue());
             var nodes = new HashMap<String, Double>();
-            n.path("nodes").fields().forEachRemaining(f -> nodes.put(f.getKey(), f.getValue().asDouble()));
+            n.path("nodes").properties().forEach(f -> nodes.put(f.getKey(), f.getValue().asDouble()));
             out.add(new RunRecord(workflow, Instant.parse(n.get("time").asText()), n.path("millis").asDouble(), n.path("done").asInt(),
                                   n.path("cached").asInt(), n.path("errors").asInt(), n.path("skipped").asInt(), nodes));
         }

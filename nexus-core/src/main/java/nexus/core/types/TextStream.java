@@ -16,6 +16,10 @@ import java.util.function.Consumer;
  * whole text call {@link #await()}.
  */
 public final class TextStream {
+    /** An open, empty stream. */
+    public TextStream() {
+    }
+
     private final StringBuilder text = new StringBuilder();
     private final List<Consumer<String>> listeners = new CopyOnWriteArrayList<>();
     private final CompletableFuture<String> done = new CompletableFuture<>();
