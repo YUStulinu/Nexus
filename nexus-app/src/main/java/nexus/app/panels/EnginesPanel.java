@@ -30,12 +30,10 @@ import nexus.engines.llm.OpenAiClient;
  * KV-cache occupancy, free GPU memory) and their output log.
  */
 public final class EnginesPanel extends ScrollPane {
-    private final EngineManager manager;
     private final VBox rows = new VBox(6);
     private final Map<String, Row> byId = new HashMap<>();
 
     public EnginesPanel(EngineManager manager) {
-        this.manager = manager;
         rows.setPadding(new Insets(8));
         setContent(rows);
         setFitToWidth(true);

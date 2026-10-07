@@ -241,10 +241,9 @@ public final class LlmNodes implements NodeLibrary {
     }
 
     /** Starts the engine if needed and streams one completion into {@code into}, emitting on {@code channel}. */
-    @SuppressWarnings("try")      // the engine.use() resource only marks the engine busy
     static OpenAiClient.Reply stream(NodeContext ctx, nexus.engines.Engine engine, List<Message> messages, OpenAiClient.Options opts,
                                      TextStream into, String channel) throws Exception {
-        try (var use = engine.use()) {
+        try (var _ = engine.use()) {         // marks the engine busy: it is never evicted mid-answer
             if (!engine.state().isUp()) {
                 ctx.progress(-1, "starting " + engine.spec().name());
                 ctx.log("starting " + engine.spec().name());

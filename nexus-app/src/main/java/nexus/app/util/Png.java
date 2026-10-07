@@ -32,24 +32,27 @@ public final class Png {
             }
         }
         var compressed = new ByteArrayOutputStream();
-        try (var z = new DeflaterOutputStream(compressed, new Deflater(6))) {
+        // A Deflater passed in is not ended by the stream: close it too, or its native memory waits for the GC.
+        try (var deflater = new Deflater(6); var z = new DeflaterOutputStream(compressed, deflater)) {
             raw.writeTo(z);
         }
-        var out = new ByteArrayOutputStream();
-        var d = new DataOutputStream(out);
-        d.write(new byte[]{(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'});
         var ihdr = new ByteArrayOutputStream();
-        var hd = new DataOutputStream(ihdr);
-        hd.writeInt(w);
-        hd.writeInt(h);
-        hd.writeByte(8);    // bit depth
-        hd.writeByte(6);    // colour type: RGBA
-        hd.writeByte(0);
-        hd.writeByte(0);
-        hd.writeByte(0);
-        chunk(d, "IHDR", ihdr.toByteArray());
-        chunk(d, "IDAT", compressed.toByteArray());
-        chunk(d, "IEND", new byte[0]);
+        try (var hd = new DataOutputStream(ihdr)) {
+            hd.writeInt(w);
+            hd.writeInt(h);
+            hd.writeByte(8);    // bit depth
+            hd.writeByte(6);    // colour type: RGBA
+            hd.writeByte(0);
+            hd.writeByte(0);
+            hd.writeByte(0);
+        }
+        var out = new ByteArrayOutputStream();
+        try (var d = new DataOutputStream(out)) {
+            d.write(new byte[]{(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'});
+            chunk(d, "IHDR", ihdr.toByteArray());
+            chunk(d, "IDAT", compressed.toByteArray());
+            chunk(d, "IEND", new byte[0]);
+        }
         Files.write(file, out.toByteArray());
     }
 

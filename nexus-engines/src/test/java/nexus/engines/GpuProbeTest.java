@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import nexus.engines.system.GpuProbe;
+import nexus.engines.system.GpuSample;
 import nexus.engines.system.NvmlProbe;
 import nexus.engines.system.SmiProbe;
 import nexus.engines.system.SystemMonitor;
@@ -16,7 +17,7 @@ class GpuProbeTest {
     void parsesNvidiaSmiOutput() throws Exception {
         var m = SmiProbe.class.getDeclaredMethod("parse", String.class);
         m.setAccessible(true);
-        var s = (nexus.engines.system.GpuSample) m.invoke(null, "NVIDIA GeForce RTX 2060, 6144, 733, 5223, 6, 3, 47, 11.10, 80.00, 300, 405, [N/A]");
+        var s = (GpuSample) m.invoke(null, "NVIDIA GeForce RTX 2060, 6144, 733, 5223, 6, 3, 47, 11.10, 80.00, 300, 405, [N/A]");
         assertEquals("NVIDIA GeForce RTX 2060", s.name());
         assertEquals(6144, s.totalMiB());
         assertEquals(733, s.usedMiB());
@@ -28,7 +29,10 @@ class GpuProbeTest {
     /** On a machine with an NVIDIA GPU, NVML (through FFM) and nvidia-smi must agree. */
     @Test
     void nvmlAgreesWithNvidiaSmi() {
-        var smi = new SmiProbe().sample();
+        GpuSample smi;
+        try (var probe = new SmiProbe()) {
+            smi = probe.sample();
+        }
         assumeTrue(smi.present(), "no NVIDIA GPU");
         try (var nvml = new NvmlProbe()) {
             var n = nvml.sample();
@@ -43,7 +47,9 @@ class GpuProbeTest {
             for (int i = 0; i < 100; i++) nvml.sample();
             System.out.printf("NVML sample: %.3f ms%n", (System.nanoTime() - t0) / 1e6 / 100);
             t0 = System.nanoTime();
-            for (int i = 0; i < 5; i++) new SmiProbe().sample();
+            try (var probe = new SmiProbe()) {
+                for (int i = 0; i < 5; i++) probe.sample();
+            }
             System.out.printf("nvidia-smi sample: %.1f ms%n", (System.nanoTime() - t0) / 1e6 / 5);
         }
     }

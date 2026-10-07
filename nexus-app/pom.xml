@@ -57,6 +57,8 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
+            <!-- only for "mvn package": the IDE must not run it on every incremental build -->
+            <?m2e ignore?>
             <id>copy-libs</id>
             <phase>package</phase>
             <goals>

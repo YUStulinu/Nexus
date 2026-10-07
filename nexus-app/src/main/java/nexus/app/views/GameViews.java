@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import javafx.application.Platform;
 import javafx.geometry.VPos;
@@ -606,7 +605,6 @@ public final class GameViews {
         private final Label state = new Label("not started");
         private final ListView<String> lines = new ListView<>();
         private final List<GambitTraining.Generation> gens = new ArrayList<>();
-        private final AtomicBoolean redraw = new AtomicBoolean();
 
         TrainingBody() {
             state.setStyle("-fx-text-fill: #ffd43b; -fx-font-size: 11.5px; -fx-font-weight: bold;");

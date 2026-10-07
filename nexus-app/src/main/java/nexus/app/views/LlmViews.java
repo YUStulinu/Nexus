@@ -10,8 +10,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import nexus.core.exec.NodeStatus;
 import nexus.engines.EngineManager;
@@ -234,7 +232,6 @@ public final class LlmViews {
             return true;
         }
 
-        @SuppressWarnings("try")      // engine.use() only marks the engine busy
         private void sendMessage() {
             String msg = input.getText().strip();
             if (msg.isEmpty() || busy) return;
@@ -259,7 +256,7 @@ public final class LlmViews {
                 try {
                     var engine = EngineManager.instance().pickLlm(engineId);
                     OpenAiClient.Reply r;
-                    try (var use = engine.use()) {
+                    try (var _ = engine.use()) {     // marks the engine busy: it is never evicted mid-answer
                         if (!engine.state().isUp()) {
                             Platform.runLater(() -> status.setText("starting " + engine.spec().name() + "…"));
                             engine.awaitReady(java.time.Duration.ofSeconds(150));

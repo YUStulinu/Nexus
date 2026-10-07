@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import nexus.games.net.GnetNetwork;
 import nexus.games.rules.Game;
 import nexus.games.search.Mcts;

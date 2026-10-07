@@ -34,7 +34,6 @@ public final class HistoryPanel extends HBox {
 
     private final WorkflowHistory history;
     private final Supplier<String> workflowName;
-    private final Consumer<String> restore;
     private final ListView<WorkflowHistory.Version> versions = new ListView<>();
     private final TextArea diff = new TextArea();
     private final Label engine = new Label(), runsTitle = new Label("RUNS");
@@ -45,7 +44,6 @@ public final class HistoryPanel extends HBox {
     public HistoryPanel(WorkflowHistory history, Supplier<String> workflowName, Consumer<String> restore) {
         this.history = history;
         this.workflowName = workflowName;
-        this.restore = restore;
         setSpacing(10);
         setPadding(new Insets(6, 8, 6, 8));
         setStyle("-fx-background-color: #181a20;");
