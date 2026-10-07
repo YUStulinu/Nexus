@@ -20,8 +20,9 @@ import nexus.engines.system.VramBroker;
  *
  * <p>The projects (Ember, Kindling, Anvil, Gambit) are looked for in the folder given by the
  * {@code NEXUS_PROJECTS} environment variable or the {@code nexus.projects} system property, else in
- * the parent folder of the working directory (the layout of ProiecteVSCode, where NEXUS sits next to
- * them). Engines whose executables are missing are still listed, marked unavailable, so the UI can
+ * the nearest folder above the working directory that contains them (the layout of ProiecteVSCode,
+ * where NEXUS sits next to them); that folder is remembered in ~/.nexus/projects.txt for the
+ * packaged application, which may be started from anywhere. Engines whose executables are missing are still listed, marked unavailable, so the UI can
  * explain what to build.
  *
  * <p>It also owns the {@link SystemMonitor} (GPU, CPU, memory) and the {@link VramBroker} through
@@ -73,8 +74,26 @@ public final class EngineManager implements AutoCloseable {
         if (p == null || p.isBlank()) p = System.getProperty("nexus.projects");
         if (p != null && !p.isBlank()) return Path.of(p).toAbsolutePath();
         Path cwd = Path.of("").toAbsolutePath();
+        Path remembered = Path.of(System.getProperty("user.home"), ".nexus", "projects.txt");
         for (Path dir = cwd; dir != null; dir = dir.getParent())
-            if (Files.isDirectory(dir.resolve("Ember")) || Files.isDirectory(dir.resolve("Gambit"))) return dir;
+            if (Files.isDirectory(dir.resolve("Ember")) || Files.isDirectory(dir.resolve("Gambit"))) {
+                // Remember it, so that the packaged application (started from anywhere) finds the projects too.
+                try {
+                    Files.createDirectories(remembered.getParent());
+                    Files.writeString(remembered, dir.toString());
+                } catch (java.io.IOException ignored) {
+                    // only a convenience
+                }
+                return dir;
+            }
+        try {
+            if (Files.isRegularFile(remembered)) {
+                Path dir = Path.of(Files.readString(remembered).strip());
+                if (Files.isDirectory(dir)) return dir;
+            }
+        } catch (java.io.IOException | java.nio.file.InvalidPathException ignored) {
+            // fall through
+        }
         return cwd.getParent() != null ? cwd.getParent() : cwd;
     }
 

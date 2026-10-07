@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # NEXUS sits next to the projects it drives, as on the development machine:
+      # Tessera is built into the native storage library, Gambit's networks feed the reference tests.
+      - uses: actions/checkout@v4
+        with:
+          path: Nexus
+      - uses: actions/checkout@v4
+        with:
+          repository: YUStulinu/Tessera
+          path: Tessera
+      - uses: actions/checkout@v4
+        with:
+          repository: YUStulinu/Gambit
+          path: Gambit
+          sparse-checkout: |
+            models
+            data
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build Tessera as a shared library
+        working-directory: Nexus
+        run: |
+          cmake -S native/tessera -B native/tessera/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build native/tessera/build --config Release
+
+      - name: Build and test
+        working-directory: Nexus
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp verify
+
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ matrix.os }}
+          path: Nexus/**/target/surefire-reports/
+
+      - name: Package the application (jpackage)
+        working-directory: Nexus
+        run: tools/package/package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NEXUS-${{ runner.os }}
+          path: Nexus/dist/NEXUS-*.zip

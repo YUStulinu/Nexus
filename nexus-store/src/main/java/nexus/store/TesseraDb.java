@@ -94,6 +94,8 @@ public final class TesseraDb implements AutoCloseable {
         if (prop != null && !prop.isBlank()) return Path.of(prop);
         String file = System.mapLibraryName("tessera");
         var candidates = new ArrayList<Path>();
+        String appDir = System.getProperty("nexus.tessera.dir");            // set by the packaged application
+        if (appDir != null && !appDir.isBlank()) candidates.add(Path.of(appDir).resolve(file));
         for (Path dir = Path.of("").toAbsolutePath(); dir != null; dir = dir.getParent()) {
             candidates.add(dir.resolve("native/tessera/build/Release").resolve(file));
             candidates.add(dir.resolve("native/tessera/build").resolve(file));
