@@ -1,0 +1,12 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "Kindling vs Qwen3",
+  "nodes": [
+    { "id": "n1", "type": "text.input", "x": 40.0, "y": 80.0, "params": { "text": "În anul 1918, România" }, "title": "Beginning of a text" },
+    { "id": "n2", "type": "llm.duel", "x": 380.0, "y": 40.0,
+      "params": { "engineA": "kindling", "engineB": "ember-0.6b", "maxTokens": 120.0, "temperature": 0.8 } }
+  ],
+  "edges": [ { "from": "n1.text", "to": "n2.prompt" } ],
+  "view": { "x": 0, "y": 0, "zoom": 1 }
+}

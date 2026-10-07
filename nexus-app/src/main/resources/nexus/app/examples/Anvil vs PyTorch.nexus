@@ -1,0 +1,18 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "Anvil vs PyTorch",
+  "nodes": [
+    { "id": "n1", "type": "gpt.train", "x": 40.0, "y": 20.0,
+      "params": { "framework": "Anvil (own CUDA kernels)", "steps": 600.0, "eval": 100.0, "out": "~/.nexus/runs/race-anvil" }, "title": "Anvil" },
+    { "id": "n2", "type": "gpt.train", "x": 40.0, "y": 470.0,
+      "params": { "framework": "PyTorch (Kindling)", "steps": 600.0, "eval": 100.0, "out": "~/.nexus/runs/race-pytorch" }, "title": "PyTorch" },
+    { "id": "n3", "type": "train.compare", "x": 560.0, "y": 280.0, "params": {} }
+  ],
+  "edges": [
+    { "from": "n1.curve", "to": "n2.after" },
+    { "from": "n1.curve", "to": "n3.a" },
+    { "from": "n2.curve", "to": "n3.b" }
+  ],
+  "view": { "x": 0, "y": 0, "zoom": 1 }
+}

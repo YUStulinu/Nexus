@@ -67,6 +67,8 @@ public final class NodeView extends Region {
             case "game-board" -> 460;
             case "training" -> 520;
             case "arena" -> 400;
+            case "loss-curve" -> 420;
+            case "curves" -> 460;
             case "table", "list" -> 290;
             default -> 236;
         };

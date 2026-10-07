@@ -116,7 +116,23 @@ public final class EngineManager implements AutoCloseable {
                     ember, m.port(), "/health", Duration.ofSeconds(90), Map.of(), m.vram(),
                     "LLM inference engine in C++/CUDA (" + m.dir() + ", int4 weights)"));
         }
+        // Kindling: the small Romanian GPT, behind an OpenAI-compatible server written for NEXUS.
+        Path kindling = projects.resolve("Kindling");
+        Path python = kindling.resolve(isWindows() ? ".venv/Scripts/python.exe" : ".venv/bin/python");
+        Path server = nexusDir(projects).resolve("engines/kindling/kindling_server.py");
+        specs.add(new EngineSpec("kindling", "Kindling · Romanian GPT (10.6M)", EngineSpec.Kind.LLM,
+                List.of(python.toString(), "-u", server.toString(), "--kindling", kindling.toString(), "--ckpt", "runs/rope/best.pt",
+                        "--port", "8092"),
+                kindling, 8092, "/health", Duration.ofSeconds(90), Map.of("PYTHONIOENCODING", "utf-8"), 400,
+                "A 10.6M-parameter GPT trained from scratch on Romanian text (PyTorch); continues text rather than following instructions"));
         return specs;
+    }
+
+    /** The NEXUS folder (where engines/ lives): the working directory, or projects/Nexus. */
+    static Path nexusDir(Path projects) {
+        Path cwd = Path.of("").toAbsolutePath();
+        if (Files.isDirectory(cwd.resolve("engines"))) return cwd;
+        return projects.resolve("Nexus");
     }
 
     static boolean isWindows() {
@@ -153,11 +169,12 @@ public final class EngineManager implements AutoCloseable {
     }
 
     /**
-     * The LLM engine to use for "auto": one that is already up, else the first available.
+     * The LLM engine to use for "auto": an instruction-following model that is already up, else the
+     * first available one (Kindling, a base model that only continues text, is chosen only by name).
      */
     public Engine pickLlm(String requested) {
         if (requested != null && !requested.isBlank() && !requested.equals("auto")) return get(requested);
-        var llms = ofKind(EngineSpec.Kind.LLM);
+        var llms = ofKind(EngineSpec.Kind.LLM).stream().filter(e -> !e.spec().id().equals("kindling")).toList();
         return llms.stream().filter(e -> e.state().isUp()).findFirst()
                    .or(() -> llms.stream().filter(e -> e.spec().available()).findFirst())
                    .orElseThrow(() -> new IllegalStateException("no language model engine is available: build Ember in "

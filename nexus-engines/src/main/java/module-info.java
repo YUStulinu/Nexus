@@ -11,6 +11,7 @@ module nexus.engines {
     exports nexus.engines;
     exports nexus.engines.llm;
     exports nexus.engines.system;
+    exports nexus.engines.train;
 
-    provides nexus.core.registry.NodeLibrary with nexus.engines.llm.LlmNodes;
+    provides nexus.core.registry.NodeLibrary with nexus.engines.llm.LlmNodes, nexus.engines.train.TrainingNodes;
 }
