@@ -1,0 +1,54 @@
+{
+  "format" : "nexus-workflow",
+  "version" : 1,
+  "name" : "Formula",
+  "nodes" : [ {
+    "id" : "n1",
+    "type" : "number.input",
+    "x" : 40.0,
+    "y" : 60.0,
+    "title" : "Side a",
+    "params" : {
+      "value" : 3.0
+    }
+  }, {
+    "id" : "n2",
+    "type" : "number.input",
+    "x" : 40.0,
+    "y" : 220.0,
+    "title" : "Side b",
+    "params" : {
+      "value" : 4.0
+    }
+  }, {
+    "id" : "n3",
+    "type" : "math.formula",
+    "x" : 360.0,
+    "y" : 120.0,
+    "title" : "Hypotenuse",
+    "params" : {
+      "expression" : "sqrt(a^2 + b^2)"
+    }
+  }, {
+    "id" : "n4",
+    "type" : "view.preview",
+    "x" : 680.0,
+    "y" : 100.0,
+    "params" : { }
+  } ],
+  "edges" : [ {
+    "from" : "n1.value",
+    "to" : "n3.a"
+  }, {
+    "from" : "n2.value",
+    "to" : "n3.b"
+  }, {
+    "from" : "n3.value",
+    "to" : "n4.value"
+  } ],
+  "view" : {
+    "x" : 0.0,
+    "y" : 0.0,
+    "zoom" : 1.0
+  }
+}

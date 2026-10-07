@@ -141,13 +141,13 @@ public final class ExecutionEngine implements AutoCloseable {
         String threadName = Thread.currentThread().getName();
 
         if (run.isCancelled()) {
-            finish(run, listener, timings, id, def.title(), NodeStatus.CANCELLED, "cancelled", start, threadName);
+            finish(run, listener, timings, id, state.title(), NodeStatus.CANCELLED, "cancelled", start, threadName);
             outs.values().forEach(f -> f.completeExceptionally(new CancellationException("cancelled")));
             return;
         }
         if (upstreamError != null) {
             boolean cancelled = unwrap(upstreamError) instanceof CancellationException;
-            finish(run, listener, timings, id, def.title(), cancelled ? NodeStatus.CANCELLED : NodeStatus.SKIPPED,
+            finish(run, listener, timings, id, state.title(), cancelled ? NodeStatus.CANCELLED : NodeStatus.SKIPPED,
                    cancelled ? "cancelled" : "an input failed", start, threadName);
             outs.values().forEach(f -> f.completeExceptionally(upstreamError));
             return;
@@ -158,7 +158,7 @@ public final class ExecutionEngine implements AutoCloseable {
             for (var e : outs.entrySet()) e.getValue().complete(cached.outputs().get(e.getKey()));
             lastOutputs.put(id, cached.outputs());
             listener.nodeOutputs(id, cached.outputs());
-            finish(run, listener, timings, id, def.title(), NodeStatus.CACHED, "unchanged", start, threadName);
+            finish(run, listener, timings, id, state.title(), NodeStatus.CACHED, "unchanged", start, threadName);
             return;
         }
 
@@ -178,14 +178,14 @@ public final class ExecutionEngine implements AutoCloseable {
             else cache.remove(id);
             lastOutputs.put(id, produced);
             listener.nodeOutputs(id, produced);
-            finish(run, listener, timings, id, def.title(), NodeStatus.DONE, null, start, threadName);
+            finish(run, listener, timings, id, state.title(), NodeStatus.DONE, null, start, threadName);
         } catch (Throwable t) {
             Throwable cause = unwrap(t);
             boolean cancelled = run.isCancelled() || cause instanceof CancellationException || cause instanceof InterruptedException;
             cache.remove(id);
             outs.values().forEach(f -> f.completeExceptionally(cancelled ? new CancellationException("cancelled") : cause));
             String message = cancelled ? "cancelled" : describe(cause);
-            finish(run, listener, timings, id, def.title(), cancelled ? NodeStatus.CANCELLED : NodeStatus.ERROR, message, start, threadName);
+            finish(run, listener, timings, id, state.title(), cancelled ? NodeStatus.CANCELLED : NodeStatus.ERROR, message, start, threadName);
         } finally {
             run.running.remove(id);
             Thread.interrupted();   // do not leak an interrupt into the next task on this thread
@@ -237,7 +237,7 @@ public final class ExecutionEngine implements AutoCloseable {
 
         @Override
         public String nodeTitle() {
-            return snap.nodes().get(id).definition().title();
+            return snap.nodes().get(id).title();
         }
 
         @Override

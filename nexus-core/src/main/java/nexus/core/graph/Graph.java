@@ -224,13 +224,13 @@ public final class Graph {
     /** An immutable copy of the structure and parameters, taken at the start of a run. */
     public Snapshot snapshot() {
         var ns = new LinkedHashMap<String, Snapshot.NodeState>();
-        for (var n : nodes.values()) ns.put(n.id(), new Snapshot.NodeState(n.id(), n.definition(), n.params(), n.revision()));
+        for (var n : nodes.values()) ns.put(n.id(), new Snapshot.NodeState(n.id(), n.definition(), n.params(), n.revision(), n.title()));
         return new Snapshot(ns, List.copyOf(edges));
     }
 
     /** What the engine runs: nodes (definition + parameters) and wires, frozen. */
     public record Snapshot(Map<String, NodeState> nodes, List<Edge> edges) {
-        public record NodeState(String id, NodeDefinition definition, Map<String, Object> params, long revision) {
+        public record NodeState(String id, NodeDefinition definition, Map<String, Object> params, long revision, String title) {
         }
 
         public Optional<Edge> edgeInto(String node, String port) {

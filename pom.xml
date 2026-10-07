@@ -13,7 +13,7 @@
 
   <modules>
     <module>nexus-core</module>
-    <!-- <module>nexus-app</module> -->
+    <module>nexus-app</module>
   </modules>
 
   <properties>

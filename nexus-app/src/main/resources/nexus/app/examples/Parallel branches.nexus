@@ -1,0 +1,84 @@
+{
+  "format" : "nexus-workflow",
+  "version" : 1,
+  "name" : "Parallel branches",
+  "nodes" : [ {
+    "id" : "n1",
+    "type" : "text.input",
+    "x" : 40.0,
+    "y" : 200.0,
+    "title" : "Input",
+    "params" : {
+      "text" : "Three branches run at the same time"
+    }
+  }, {
+    "id" : "n2",
+    "type" : "util.delay",
+    "x" : 380.0,
+    "y" : 40.0,
+    "title" : "Slow (3 s)",
+    "params" : {
+      "seconds" : 3.0
+    }
+  }, {
+    "id" : "n3",
+    "type" : "util.delay",
+    "x" : 380.0,
+    "y" : 200.0,
+    "title" : "Medium (2 s)",
+    "params" : {
+      "seconds" : 2.0
+    }
+  }, {
+    "id" : "n4",
+    "type" : "util.delay",
+    "x" : 380.0,
+    "y" : 360.0,
+    "title" : "Fast (1 s)",
+    "params" : {
+      "seconds" : 1.0
+    }
+  }, {
+    "id" : "n5",
+    "type" : "text.template",
+    "x" : 720.0,
+    "y" : 180.0,
+    "title" : "Gather",
+    "params" : {
+      "template" : "slow: {a}\nmedium: {b}\nfast: {c}\n\nAll three finished after about 3 seconds, not 6: the engine starts every node as soon as its inputs are ready, each on its own virtual thread."
+    }
+  }, {
+    "id" : "n6",
+    "type" : "view.preview",
+    "x" : 1060.0,
+    "y" : 160.0,
+    "params" : { }
+  } ],
+  "edges" : [ {
+    "from" : "n1.text",
+    "to" : "n2.in"
+  }, {
+    "from" : "n1.text",
+    "to" : "n3.in"
+  }, {
+    "from" : "n1.text",
+    "to" : "n4.in"
+  }, {
+    "from" : "n2.out",
+    "to" : "n5.a"
+  }, {
+    "from" : "n3.out",
+    "to" : "n5.b"
+  }, {
+    "from" : "n4.out",
+    "to" : "n5.c"
+  }, {
+    "from" : "n5.text",
+    "to" : "n6.value"
+  } ],
+  "view" : {
+    "x" : 0.0,
+    "y" : 0.0,
+    "zoom" : 1.0
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "format" : "nexus-workflow",
+  "version" : 1,
+  "name" : "Text analysis",
+  "nodes" : [ {
+    "id" : "n1",
+    "type" : "text.input",
+    "x" : 40.0,
+    "y" : 120.0,
+    "title" : "Article",
+    "params" : {
+      "text" : "Inteligența artificială este un domeniu al informaticii care studiază cum pot fi construite sisteme capabile să învețe din date. Rețelele neuronale moderne învață din milioane de exemple și pot traduce texte, recunoaște imagini sau juca jocuri la nivel de campion.\n\nAlphaZero a învățat șahul, go și shogi jucând doar împotriva lui însuși. Nu a primit nicio partidă umană, ci doar regulile jocului. După câteva ore de antrenament, a depășit cele mai puternice programe existente.\n\nModelele de limbaj precum GPT generează text cuvânt cu cuvânt. Fiecare cuvânt nou este ales pe baza tuturor cuvintelor de dinainte. Calitatea lor depinde de volumul și de calitatea datelor de antrenament."
+    }
+  }, {
+    "id" : "n2",
+    "type" : "text.stats",
+    "x" : 400.0,
+    "y" : 24.0,
+    "params" : { }
+  }, {
+    "id" : "n3",
+    "type" : "text.words",
+    "x" : 400.0,
+    "y" : 290.0,
+    "params" : {
+      "top" : 10.0,
+      "minLength" : 4.0,
+      "stopWords" : true
+    }
+  }, {
+    "id" : "n4",
+    "type" : "text.split",
+    "x" : 760.0,
+    "y" : 24.0,
+    "title" : "Sentences",
+    "params" : {
+      "mode" : "sentences"
+    }
+  }, {
+    "id" : "n5",
+    "type" : "text.transform",
+    "x" : 760.0,
+    "y" : 290.0,
+    "title" : "Without diacritics",
+    "params" : {
+      "op" : "remove diacritics"
+    }
+  }, {
+    "id" : "n6",
+    "type" : "view.preview",
+    "x" : 1080.0,
+    "y" : 200.0,
+    "params" : { }
+  } ],
+  "edges" : [ {
+    "from" : "n1.text",
+    "to" : "n2.text"
+  }, {
+    "from" : "n1.text",
+    "to" : "n3.text"
+  }, {
+    "from" : "n1.text",
+    "to" : "n4.text"
+  }, {
+    "from" : "n1.text",
+    "to" : "n5.text"
+  }, {
+    "from" : "n5.text",
+    "to" : "n6.value"
+  } ],
+  "view" : {
+    "x" : 0.0,
+    "y" : 0.0,
+    "zoom" : 1.0
+  }
+}
