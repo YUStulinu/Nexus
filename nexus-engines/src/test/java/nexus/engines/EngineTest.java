@@ -116,7 +116,7 @@ class EngineTest {
 
     @Test
     void a_missing_executable_fails_cleanly() {
-        var spec = new EngineSpec("missing", "Missing", EngineSpec.Kind.LLM, List.of("C:/no/such/engine.exe"), null, 1, "/health",
+        var spec = new EngineSpec("missing", "Missing", EngineSpec.Kind.LLM, List.of(Path.of(System.getProperty("java.io.tmpdir"), "no-such-dir", "engine.exe").toAbsolutePath().toString()), null, 1, "/health",
                                   Duration.ofSeconds(5), Map.of(), 0, "");
         var e = engine(spec);
         try {

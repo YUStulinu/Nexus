@@ -288,7 +288,12 @@ public final class Engine {
             var pb = new ProcessBuilder(spec.command()).redirectErrorStream(true);
             if (spec.workDir() != null) pb.directory(spec.workDir().toFile());
             pb.environment().putAll(spec.env());
-            var p = pb.start();
+            Process p;
+            try {
+                p = pb.start();
+            } catch (IOException e) {
+                throw new IOException("executable not found or not runnable: " + spec.command().getFirst() + " (" + e.getMessage() + ")", e);
+            }
             process = p;
             Thread.ofVirtual().name("engine-log-" + spec.id()).start(() -> pump(p));
             long deadline = System.nanoTime() + spec.startupTimeout().toNanos();
