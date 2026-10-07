@@ -30,11 +30,15 @@ class EngineTest {
 
     /** A spec that runs FakeLlmServer in a separate JVM. */
     EngineSpec fakeSpec(int port, int startupDelayMs) {
+        return fakeSpec(port, startupDelayMs, 0);
+    }
+
+    EngineSpec fakeSpec(int port, int startupDelayMs, int vramMiB) {
         String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
         String cp = System.getProperty("java.class.path");
         var spec = new EngineSpec("fake-" + port, "Fake LLM", EngineSpec.Kind.LLM,
                                   List.of(java, "-cp", cp, FakeLlmServer.class.getName(), String.valueOf(port), String.valueOf(startupDelayMs)),
-                                  null, port, "/health", Duration.ofSeconds(30), Map.of(), 0, "test server");
+                                  null, port, "/health", Duration.ofSeconds(30), Map.of(), vramMiB, "test server");
         return spec;
     }
 
@@ -121,5 +125,50 @@ class EngineTest {
         }
         assertEquals(EngineState.FAILED, e.state());
         assertTrue(e.lastError().contains("not found"));
+    }
+
+    /**
+     * Two engines that do not fit on the (simulated) card together: starting the second stops the
+     * first while it is idle, never while it is answering.
+     */
+    @Test
+    void an_idle_engine_is_evicted_to_make_room_but_a_busy_one_is_not() throws Exception {
+        var engines = new CopyOnWriteArrayList<Engine>();
+        // A 6 GiB card: 700 MiB used by other programs, plus 3000 MiB for every engine that is up.
+        java.util.function.Supplier<nexus.engines.system.GpuSample> gpu = () -> {
+            long used = 700 + engines.stream().filter(x -> x.state().isUp()).mapToLong(x -> x.spec().vramMiB()).sum();
+            return new nexus.engines.system.GpuSample("test", "Fake GPU", 6144, used, 6144 - used, 0, 0, 40, 10, 100, 0, 0, 0, List.of());
+        };
+        var broker = new nexus.engines.system.VramBroker(gpu, 300, Duration.ofMillis(300), Duration.ofSeconds(60));
+        var a = engine(fakeSpec(freePort(), 0, 3000));
+        var b = engine(fakeSpec(freePort(), 0, 3000));
+        for (var e : List.of(a, b)) {
+            e.setBroker(broker);
+            engines.add(e);
+        }
+        a.awaitReady(Duration.ofSeconds(30));
+        assertEquals(1, broker.state().leases().size());
+
+        // a is answering: b cannot have its memory.
+        try (var busy = a.use()) {
+            var start = b.ensureStarted();
+            Thread.sleep(1500);
+            assertEquals(EngineState.STARTING, b.state(), "b waits for memory");
+            assertEquals(EngineState.READY, a.state());
+            assertEquals(1, broker.state().waiting().size());
+            // a finishes its answer; once idle long enough it is stopped and b starts.
+            busy.close();
+            start.get(30, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        assertEquals(EngineState.READY, b.state());
+        assertEquals(EngineState.STOPPED, a.state());
+        assertEquals(b.spec().name(), a.evictedFor());
+        assertEquals(List.of(b.spec().name()), broker.state().leases().stream().map(l -> l.holder()).toList());
+        assertTrue(a.logTail(20).stream().anyMatch(l -> l.contains("stopping to free GPU memory")));
+
+        // The next request to a starts it again, evicting b in turn.
+        Thread.sleep(400);
+        a.awaitReady(Duration.ofSeconds(30));
+        assertEquals(EngineState.STOPPED, b.state());
     }
 }

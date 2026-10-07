@@ -17,7 +17,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import nexus.engines.system.VramBroker;
 
 /**
  * One supervised engine process.
@@ -31,6 +33,10 @@ import java.util.function.Consumer;
  *   <li><b>Recover.</b> A crashed engine is restarted with exponential backoff (2 s, 4 s, 8 s), at most
  *       {@value #MAX_RESTARTS} times in {@value #RESTART_WINDOW_MIN} minutes, after which it stays FAILED.</li>
  *   <li><b>Log.</b> The process's output is kept in a ring buffer for the UI.</li>
+ *   <li><b>GPU memory.</b> Before spawning, the engine takes a lease of its memory budget from the
+ *       {@link VramBroker} (waiting, or making room, if the card is full) and gives it back when the
+ *       process ends. While idle it may be evicted - stopped - to make room for another process;
+ *       the next request starts it again.</li>
  * </ul>
  */
 public final class Engine {
@@ -51,9 +57,89 @@ public final class Engine {
     private volatile boolean wanted;          // the user (or a node) wants it running
     private volatile CompletableFuture<Engine> ready = new CompletableFuture<>();
     private final Object lock = new Object();
+    private volatile VramBroker broker;
+    private volatile VramBroker.Lease lease;
+    private volatile Thread launcher;
+    private final AtomicInteger inFlight = new AtomicInteger();
+    private volatile Instant lastUsed = Instant.now();
+    private volatile String evictedFor;
 
     public Engine(EngineSpec spec) {
         this.spec = spec;
+    }
+
+    /** Makes the engine take GPU memory leases from {@code b} (null: no coordination). */
+    public void setBroker(VramBroker b) {
+        broker = b;
+    }
+
+    /** The engine as a holder of GPU memory: an idle LLM server can be evicted. */
+    private final VramBroker.Holder holder = new VramBroker.Holder() {
+        @Override
+        public String name() {
+            return spec.name();
+        }
+
+        @Override
+        public VramBroker.Preemption preemption() {
+            return spec.kind() == EngineSpec.Kind.LLM ? VramBroker.Preemption.EVICT : VramBroker.Preemption.NEVER;
+        }
+
+        @Override
+        public boolean preemptibleNow() {
+            return inFlight.get() == 0 && state == EngineState.READY;
+        }
+
+        @Override
+        public Instant lastUsed() {
+            return lastUsed;
+        }
+
+        @Override
+        public void preempt(String requester) {
+            if (!preemptibleNow()) return;
+            appendLog("[nexus] stopping to free GPU memory for " + requester + "; the next request starts it again");
+            evictedFor = requester;
+            stop();
+        }
+    };
+
+    /**
+     * Marks the engine busy for the duration of a request (an engine answering is never evicted).
+     * Use in try-with-resources around each call to the server.
+     */
+    public Use use() {
+        inFlight.incrementAndGet();
+        lastUsed = Instant.now();
+        return () -> {
+            lastUsed = Instant.now();
+            inFlight.decrementAndGet();
+        };
+    }
+
+    /** A request in progress (closing it does not throw). */
+    public interface Use extends AutoCloseable {
+        @Override
+        void close();
+    }
+
+    public int inFlight() {
+        return inFlight.get();
+    }
+
+    public Instant lastUsed() {
+        return lastUsed;
+    }
+
+    /** Who the engine was last stopped for, to free GPU memory (null if it was not evicted). */
+    public String evictedFor() {
+        return evictedFor;
+    }
+
+    private void releaseLease() {
+        var l = lease;
+        lease = null;
+        if (l != null) l.close();
     }
 
     public EngineSpec spec() {
@@ -127,7 +213,7 @@ public final class Engine {
             if (state == EngineState.STARTING) return ready;
             ready = new CompletableFuture<>();
             setState(EngineState.STARTING, null);
-            Thread.ofVirtual().name("engine-start-" + spec.id()).start(this::launch);
+            launcher = Thread.ofVirtual().name("engine-start-" + spec.id()).start(this::launch);
             return ready;
         }
     }
@@ -148,6 +234,7 @@ public final class Engine {
             wanted = false;
             var p = process;
             if (p == null) {
+                if (state == EngineState.STARTING && launcher != null) launcher.interrupt();   // still waiting for GPU memory
                 if (state == EngineState.ATTACHED || state == EngineState.FAILED) setState(EngineState.STOPPED, null);
                 return;
             }
@@ -167,6 +254,7 @@ public final class Engine {
             }
         }
         process = null;
+        releaseLease();
         setState(EngineState.STOPPED, null);
     }
 
@@ -186,6 +274,16 @@ public final class Engine {
                 return;
             }
             if (!spec.available()) throw new IOException("executable not found: " + spec.command().getFirst());
+            var b = broker;
+            if (b != null && spec.vramMiB() > 0 && lease == null) {
+                appendLog("[nexus] asking for " + spec.vramMiB() + " MiB of GPU memory");
+                lease = b.acquire(holder, spec.vramMiB(), VramBroker.Priority.INTERACTIVE, Duration.ofSeconds(120));
+                if (!wanted) {
+                    releaseLease();
+                    setState(EngineState.STOPPED, null);
+                    return;
+                }
+            }
             appendLog("[nexus] starting: " + String.join(" ", spec.command()));
             var pb = new ProcessBuilder(spec.command()).redirectErrorStream(true);
             if (spec.workDir() != null) pb.directory(spec.workDir().toFile());
@@ -201,16 +299,26 @@ public final class Engine {
                 Thread.sleep(300);
             }
             appendLog("[nexus] ready (pid " + p.pid() + ")");
+            var l = lease;
+            if (l != null) l.markActive();
+            lastUsed = Instant.now();
+            evictedFor = null;
             setState(EngineState.READY, null);
             if (!wanted) {            // stopped while it was starting
                 stop();
                 return;
             }
             watch();
+        } catch (InterruptedException e) {
+            releaseLease();
+            appendLog("[nexus] start cancelled");
+            ready.completeExceptionally(new IllegalStateException(spec.name() + " was stopped while starting"));
+            setState(EngineState.STOPPED, null);
         } catch (Exception e) {
             var p = process;
             if (p != null) p.destroyForcibly();
             process = null;
+            releaseLease();
             appendLog("[nexus] failed to start: " + e.getMessage());
             ready.completeExceptionally(e);
             setState(EngineState.FAILED, e.getMessage());
@@ -245,6 +353,7 @@ public final class Engine {
                 String why = dead ? "the process exited (code " + p.exitValue() + ")" : "the server stopped answering";
                 appendLog("[nexus] crash: " + why);
                 process = null;
+                releaseLease();
                 setState(EngineState.FAILED, why);
                 maybeRestart();
                 return;

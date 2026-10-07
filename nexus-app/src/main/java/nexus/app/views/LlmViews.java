@@ -234,6 +234,7 @@ public final class LlmViews {
             return true;
         }
 
+        @SuppressWarnings("try")      // engine.use() only marks the engine busy
         private void sendMessage() {
             String msg = input.getText().strip();
             if (msg.isEmpty() || busy) return;
@@ -257,25 +258,28 @@ public final class LlmViews {
                 var sb = new StringBuilder();
                 try {
                     var engine = EngineManager.instance().pickLlm(engineId);
-                    if (!engine.state().isUp()) {
-                        Platform.runLater(() -> status.setText("starting " + engine.spec().name() + "…"));
-                        engine.awaitReady(java.time.Duration.ofSeconds(150));
-                    }
-                    Platform.runLater(() -> status.setText(engine.spec().name() + " is answering…"));
-                    var pending = new StringBuilder();
-                    var r = new OpenAiClient(engine.spec().baseUrl()).chat(messages, opts, piece -> {
-                        sb.append(piece);
-                        synchronized (pending) {
-                            boolean schedule = pending.isEmpty();
-                            pending.append(piece);
-                            if (schedule) Platform.runLater(() -> {
-                                synchronized (pending) {
-                                    answer.setText(sb.toString());
-                                    pending.setLength(0);
-                                }
-                            });
+                    OpenAiClient.Reply r;
+                    try (var use = engine.use()) {
+                        if (!engine.state().isUp()) {
+                            Platform.runLater(() -> status.setText("starting " + engine.spec().name() + "…"));
+                            engine.awaitReady(java.time.Duration.ofSeconds(150));
                         }
-                    }, () -> Thread.currentThread().isInterrupted());
+                        Platform.runLater(() -> status.setText(engine.spec().name() + " is answering…"));
+                        var pending = new StringBuilder();
+                        r = new OpenAiClient(engine.spec().baseUrl()).chat(messages, opts, piece -> {
+                            sb.append(piece);
+                            synchronized (pending) {
+                                boolean schedule = pending.isEmpty();
+                                pending.append(piece);
+                                if (schedule) Platform.runLater(() -> {
+                                    synchronized (pending) {
+                                        answer.setText(sb.toString());
+                                        pending.setLength(0);
+                                    }
+                                });
+                            }
+                        }, () -> Thread.currentThread().isInterrupted());
+                    }
                     history.add(OpenAiClient.Message.assistant(r.content()));
                     Platform.runLater(() -> {
                         answer.setText(r.content());

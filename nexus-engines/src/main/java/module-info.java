@@ -6,9 +6,11 @@
 module nexus.engines {
     requires transitive nexus.core;
     requires java.net.http;
+    requires jdk.management;
 
     exports nexus.engines;
     exports nexus.engines.llm;
+    exports nexus.engines.system;
 
     provides nexus.core.registry.NodeLibrary with nexus.engines.llm.LlmNodes;
 }

@@ -61,6 +61,8 @@ import nexus.core.registry.NodeRegistry;
  *   --screenshot FILE.png          save a screenshot of the window, then exit
  *   --size WIDTHxHEIGHT            window size (default 1500x900)
  *   --chat NODE_ID:MESSAGE         type a message into a Conversation node
+ *   --tab NAME                     show a bottom tab (Timeline, Log, Engines, System)
+ *   --split FRACTION               height of the canvas above the bottom tabs (default 0.76)
  * </pre>
  */
 public class NexusApp extends Application {
@@ -81,6 +83,8 @@ public class NexusApp extends Application {
     private Stage stage;
     private Button runButton, stopButton;
     private final Map<String, Long> started = new HashMap<>();
+    private TabPane bottom;
+    private SplitPane center;
 
     public static void main(String[] args) {
         launch(args);
@@ -99,12 +103,14 @@ public class NexusApp extends Application {
         inspector = new Inspector(ws);
         log = new LogPanel();
         timeline = new TimelinePanel();
+        timeline.setMonitor(engines.monitor());
         canvas.primarySelection().addListener((o, a, id) -> inspector.show(id));
 
         ws.addRunListener(new RunBridge(new RunBridge.Sink() {
             @Override
             public void runStarted(Run run, Set<String> nodes) {
                 canvas.runStarted(nodes);
+                timeline.runStarted();
                 started.clear();
                 log.add(LogPanel.Level.INFO, "run #" + run.id() + " started (" + nodes.size() + " nodes)");
                 status.setText("running…");
@@ -165,10 +171,12 @@ public class NexusApp extends Application {
             var c = canvas.toWorld(canvas.getWidth() / 2, canvas.getHeight() / 2);
             canvas.addNode(def, c.getX() - 110, c.getY() - 60);
         });
-        var bottom = new TabPane(new Tab("Timeline", timeline), new Tab("Log", log),
-                                 new Tab("Engines", new nexus.app.panels.EnginesPanel(engines)));
+        bottom = new TabPane(new Tab("Timeline", timeline), new Tab("Log", log),
+                             new Tab("Engines", new nexus.app.panels.EnginesPanel(engines)));
+        if (engines.monitor() != null)
+            bottom.getTabs().add(new Tab("System", new nexus.app.panels.SystemPanel(engines.monitor(), engines.broker())));
         bottom.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        var center = new SplitPane(canvas, bottom);
+        center = new SplitPane(canvas, bottom);
         center.setOrientation(Orientation.VERTICAL);
         center.setDividerPositions(0.76);
         var main = new SplitPane(palette, center, inspector);
@@ -448,6 +456,10 @@ public class NexusApp extends Application {
             Platform.runLater(() -> {
                 canvas.fitView();
                 if (o.containsKey("select")) canvas.select(o.get("select"), false);
+                if (o.containsKey("tab"))
+                    bottom.getTabs().stream().filter(t -> t.getText().equalsIgnoreCase(o.get("tab"))).findFirst()
+                          .ifPresent(t -> bottom.getSelectionModel().select(t));
+                if (o.containsKey("split")) center.setDividerPositions(Double.parseDouble(o.get("split")));
                 if (o.containsKey("run")) ws.run(null);
                 if (o.containsKey("chat")) {
                     // --chat "nodeId:message": types a message into a conversation node (after the run settles)

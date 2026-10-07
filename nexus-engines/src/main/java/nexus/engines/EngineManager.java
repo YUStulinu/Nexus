@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import nexus.engines.system.GpuProbe;
+import nexus.engines.system.SystemMonitor;
+import nexus.engines.system.VramBroker;
 
 /**
  * All the engines NEXUS knows about, and where the sibling projects are.
@@ -21,6 +24,9 @@ import java.util.function.Consumer;
  * them). Engines whose executables are missing are still listed, marked unavailable, so the UI can
  * explain what to build.
  *
+ * <p>It also owns the {@link SystemMonitor} (GPU, CPU, memory) and the {@link VramBroker} through
+ * which every engine leases its GPU memory.
+ *
  * <p>A JVM shutdown hook stops every process NEXUS started.
  */
 public final class EngineManager implements AutoCloseable {
@@ -29,6 +35,10 @@ public final class EngineManager implements AutoCloseable {
     private final Path projects;
     private final Map<String, Engine> engines = new LinkedHashMap<>();
     private final List<Consumer<Engine>> listeners = new CopyOnWriteArrayList<>();
+    private volatile SystemMonitor monitor;
+    private volatile VramBroker broker;
+    /** Kept free on the GPU for the display, the driver and allocation slack. */
+    public static final int VRAM_MARGIN_MIB = 300;
 
     /** The application-wide manager (created on first use). */
     public static EngineManager instance() {
@@ -43,7 +53,17 @@ public final class EngineManager implements AutoCloseable {
     }
 
     public EngineManager(Path projects) {
+        this(projects, true);
+    }
+
+    /** @param coordinateGpu whether engines lease GPU memory through a broker (false in tests) */
+    public EngineManager(Path projects, boolean coordinateGpu) {
         this.projects = projects;
+        if (coordinateGpu) {
+            monitor = new SystemMonitor(GpuProbe.detect(), java.time.Duration.ofSeconds(1));
+            var probe = monitor.probe();
+            broker = new VramBroker(probe::sample, VRAM_MARGIN_MIB);
+        }
         for (var spec : defaultSpecs(projects)) add(spec);
         Runtime.getRuntime().addShutdownHook(new Thread(this::close, "nexus-engines-shutdown"));
     }
@@ -56,6 +76,18 @@ public final class EngineManager implements AutoCloseable {
         for (Path dir = cwd; dir != null; dir = dir.getParent())
             if (Files.isDirectory(dir.resolve("Ember")) || Files.isDirectory(dir.resolve("Gambit"))) return dir;
         return cwd.getParent() != null ? cwd.getParent() : cwd;
+    }
+
+    /** The machine monitor (started on first call), or null if GPU coordination is off. */
+    public SystemMonitor monitor() {
+        var m = monitor;
+        if (m != null) m.start();
+        return m;
+    }
+
+    /** The GPU memory broker, or null if coordination is off. */
+    public VramBroker broker() {
+        return broker;
     }
 
     public Path projects() {
@@ -93,6 +125,7 @@ public final class EngineManager implements AutoCloseable {
 
     public synchronized Engine add(EngineSpec spec) {
         var e = new Engine(spec);
+        e.setBroker(broker);
         e.addListener(en -> listeners.forEach(l -> l.accept(en)));
         engines.put(spec.id(), e);
         return e;
@@ -140,5 +173,7 @@ public final class EngineManager implements AutoCloseable {
                 // best effort at shutdown
             }
         }
+        var m = monitor;
+        if (m != null) m.close();
     }
 }

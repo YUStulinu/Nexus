@@ -11,6 +11,9 @@ import java.nio.charset.StandardCharsets;
  * word as server-sent events (with a usage chunk). Run as its own process by the supervisor tests.
  */
 public final class FakeLlmServer {
+    private FakeLlmServer() {
+    }
+
     public static void main(String[] args) throws Exception {
         int port = Integer.parseInt(args[0]);
         int startupDelayMs = args.length > 1 ? Integer.parseInt(args[1]) : 0;
