@@ -1,0 +1,19 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "Train while you chat",
+  "nodes": [
+    { "id": "n1", "type": "game.train", "x": 40.0, "y": 40.0,
+      "params": { "game": "connect4", "run": "~/.nexus/runs/demo-c4", "generations": 4.0, "games": 4096.0, "parallel": 4096.0, "simulations": 200.0 },
+      "title": "AlphaZero self-play (background)" },
+    { "id": "n2", "type": "text.input", "x": 640.0, "y": 40.0,
+      "params": { "text": "Explică pe scurt cum învață AlphaZero jucând singur." }, "title": "Prompt" },
+    { "id": "n3", "type": "util.delay", "x": 640.0, "y": 250.0, "params": { "seconds": 50.0 }, "title": "A minute later…" },
+    { "id": "n4", "type": "llm.duel", "x": 900.0, "y": 40.0, "params": { "maxTokens": 300.0 } }
+  ],
+  "edges": [
+    { "from": "n2.text", "to": "n3.in" },
+    { "from": "n3.out", "to": "n4.prompt" }
+  ],
+  "view": { "x": 0, "y": 0, "zoom": 1 }
+}

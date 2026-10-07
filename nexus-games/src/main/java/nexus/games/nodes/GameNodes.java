@@ -213,8 +213,9 @@ public final class GameNodes implements NodeLibrary {
                 .behavior(() -> ctx -> {
                     String game = ctx.paramText("game");
                     var mgr = EngineManager.instance();
-                    Path run = ctx.paramText("run").isBlank()
-                               ? nexusHome().resolve("runs").resolve(game) : Path.of(ctx.paramText("run"));
+                    String runText = ctx.paramText("run").strip();
+                    if (runText.startsWith("~")) runText = System.getProperty("user.home") + runText.substring(1);
+                    Path run = runText.isBlank() ? nexusHome().resolve("runs").resolve(game) : Path.of(runText);
                     var opts = new GambitTraining.Options(GambitTraining.defaultExecutable(mgr.projects()), game, run, ctx.paramInt("generations"),
                                                           ctx.paramInt("games"), ctx.paramInt("parallel"), ctx.paramInt("simulations"));
                     var history = new ArrayList<GambitTraining.Generation>();

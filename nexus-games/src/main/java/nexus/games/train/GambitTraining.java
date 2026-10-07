@@ -59,6 +59,13 @@ public final class GambitTraining {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    /** Trainer processes alive, killed when NEXUS exits (a trainer left behind would hold the GPU). */
+    private static final java.util.Set<Process> LIVE = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> LIVE.forEach(GambitTraining::kill), "gambit-training-shutdown"));
+    }
+
     private final Options options;
     private final VramBroker broker;
     private volatile Process process;
@@ -154,6 +161,7 @@ public final class GambitTraining {
                 pb.directory(options.gambit().getParent().toFile());
                 var p = pb.start();
                 process = p;
+                LIVE.add(p);
                 if (lease != null) lease.markActive();
                 var reader = Thread.ofVirtual().start(() -> {
                     try (var r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
@@ -179,6 +187,11 @@ public final class GambitTraining {
                 if (paused) continue;                      // stopped by the broker: wait for memory, then resume
                 if (p.exitValue() != 0) throw new IOException("Gambit's trainer exited with code " + p.exitValue());
             } finally {
+                var p = process;
+                if (p != null) {
+                    if (p.isAlive()) kill(p);
+                    LIVE.remove(p);
+                }
                 process = null;
                 if (lease != null) lease.close();
             }
@@ -187,15 +200,9 @@ public final class GambitTraining {
         return options.run().resolve(options.game() + "-best.gnet");
     }
 
+    /** Background work waits as long as it must (until the node is stopped). */
     private VramBroker.Lease acquire(BooleanSupplier cancelled) throws Exception {
-        while (true) {
-            try {
-                return broker.acquire(holder, options.vramMiB(), VramBroker.Priority.BACKGROUND, Duration.ofSeconds(5));
-            } catch (java.util.concurrent.TimeoutException e) {
-                if (cancelled.getAsBoolean()) throw new java.util.concurrent.CancellationException("training stopped");
-                // keep waiting: background work waits as long as it must
-            }
-        }
+        return broker.acquire(holder, options.vramMiB(), VramBroker.Priority.BACKGROUND, Duration.ofDays(7), cancelled);
     }
 
     public boolean paused() {

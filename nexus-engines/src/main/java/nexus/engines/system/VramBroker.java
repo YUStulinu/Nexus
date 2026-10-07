@@ -224,6 +224,16 @@ public final class VramBroker {
      * @throws InterruptedException if the waiting thread is interrupted (the request is withdrawn)
      */
     public Lease acquire(Holder holder, int mib, Priority priority, Duration timeout) throws InterruptedException, TimeoutException {
+        return acquire(holder, mib, priority, timeout, () -> false);
+    }
+
+    /**
+     * Like {@link #acquire(Holder, int, Priority, Duration)}, withdrawing the request (with a
+     * CancellationException) as soon as {@code cancelled} turns true - for background jobs that
+     * wait as long as it takes.
+     */
+    public Lease acquire(Holder holder, int mib, Priority priority, Duration timeout, java.util.function.BooleanSupplier cancelled)
+            throws InterruptedException, TimeoutException {
         var first = gpu.get();
         if (!first.present()) {           // nothing to coordinate (CPU-only machine): the process will find out itself
             var l = new Lease(holder, mib, priority);
@@ -267,6 +277,7 @@ public final class VramBroker {
                         }
                         makeRoom(req, mib - avail);
                     }
+                    if (cancelled.getAsBoolean()) throw new java.util.concurrent.CancellationException(holder.name() + " stopped waiting");
                     long left = deadline - System.nanoTime();
                     if (left <= 0) {
                         String why = describe(g, req);

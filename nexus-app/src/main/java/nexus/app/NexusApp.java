@@ -68,7 +68,7 @@ import nexus.core.registry.NodeRegistry;
 public class NexusApp extends Application {
     public static final List<String> EXAMPLES = List.of("Text analysis", "Parallel branches", "Formula", "Brief and quiz with Ember",
                                                         "Model duel", "Chat with a document",
-                                                        "Ask your documents", "AlphaZero (Gambit)");
+                                                        "Ask your documents", "AlphaZero (Gambit)", "Train while you chat");
 
     /** Extra services and node libraries, contributed by other modules before launch. */
     public static final Services SERVICES = new Services();
