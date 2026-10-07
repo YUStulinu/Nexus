@@ -16,6 +16,7 @@
     <module>nexus-ml</module>
     <module>nexus-engines</module>
     <module>nexus-games</module>
+    <module>nexus-store</module>
     <module>nexus-app</module>
   </modules>
 

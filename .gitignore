@@ -9,3 +9,4 @@ runs/
 /data/
 bin/
 obj/
+native/*/build/

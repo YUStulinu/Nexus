@@ -7,6 +7,8 @@ module nexus.app {
     requires nexus.core;
     requires nexus.engines;
     requires nexus.games;
+    requires nexus.store;
+    requires nexus.ml;
     requires java.logging;
 
     exports nexus.app to javafx.graphics;

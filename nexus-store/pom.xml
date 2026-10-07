@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>nexus</groupId>
+    <artifactId>nexus-parent</artifactId>
+    <version>0.1.0</version>
+  </parent>
+  <artifactId>nexus-store</artifactId>
+  <name>NEXUS store</name>
+  <description>Persistence: the Tessera storage engine (C) through the Foreign Function &amp; Memory API, workflow versions and run history.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>nexus</groupId>
+      <artifactId>nexus-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+    </dependency>
+  </dependencies>
+</project>

@@ -85,6 +85,8 @@ public class NexusApp extends Application {
     private Button runButton, stopButton;
     private final Map<String, Long> started = new HashMap<>();
     private TabPane bottom;
+    private nexus.store.WorkflowHistory history;
+    private nexus.app.panels.HistoryPanel historyPanel;
     private SplitPane center;
 
     public static void main(String[] args) {
@@ -112,6 +114,7 @@ public class NexusApp extends Application {
         ws.addRunListener(new RunBridge(new RunBridge.Sink() {
             @Override
             public void runStarted(Run run, Set<String> nodes) {
+                recordVersion("run");
                 canvas.runStarted(nodes);
                 timeline.runStarted();
                 started.clear();
@@ -167,6 +170,7 @@ public class NexusApp extends Application {
                 log.add(r.success() ? LogPanel.Level.OK : r.cancelled() ? LogPanel.Level.WARN : LogPanel.Level.ERROR, summary);
                 status.setText(summary);
                 stopButton.setDisable(true);
+                recordRun(r);
             }
         }));
 
@@ -178,6 +182,15 @@ public class NexusApp extends Application {
                              new Tab("Engines", new nexus.app.panels.EnginesPanel(engines)));
         if (engines.monitor() != null)
             bottom.getTabs().add(new Tab("System", new nexus.app.panels.SystemPanel(engines.monitor(), engines.broker())));
+        openHistory();
+        if (history != null) {
+            historyPanel = new nexus.app.panels.HistoryPanel(history, ws.name::get, this::restoreVersion);
+            var tab = new Tab("History", historyPanel);
+            tab.setOnSelectionChanged(e -> {
+                if (tab.isSelected()) historyPanel.refresh();
+            });
+            bottom.getTabs().add(tab);
+        }
         bottom.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         center = new SplitPane(canvas, bottom);
         center.setOrientation(Orientation.VERTICAL);
@@ -229,7 +242,65 @@ public class NexusApp extends Application {
     private void shutdown() {
         ws.stop();
         ws.engine.close();
+        try {
+            if (history != null) history.close();
+        } catch (IOException ignored) {
+            // closing anyway
+        }
         Thread.ofVirtual().start(() -> nexus.engines.EngineManager.instance().close());
+    }
+
+    // ---- history (Tessera) ------------------------------------------------------------------------------------
+
+    /** Opens the history store in ~/.nexus (Tessera, or a plain file if its native library is missing). */
+    private void openHistory() {
+        try {
+            var file = nexus.ml.bert.EmbeddingModels.home().resolve("nexus.tdb");
+            history = new nexus.store.WorkflowHistory(nexus.store.KeyValueStore.open(file));
+            log.add(LogPanel.Level.INFO, "history: " + history.store().engine());
+        } catch (Exception e) {
+            history = null;
+            log.add(LogPanel.Level.WARN, "history is off: " + e.getMessage());
+        }
+    }
+
+    private String currentJson() {
+        return WorkflowFile.toJson(ws.name.get(), ws.graph.nodes(), ws.graph.edges(), canvas.view());
+    }
+
+    private void recordVersion(String note) {
+        if (history == null || ws.graph.nodes().isEmpty()) return;
+        try {
+            history.save(ws.name.get(), currentJson(), note);
+        } catch (Exception e) {
+            log.add(LogPanel.Level.WARN, "could not record a version: " + e.getMessage());
+        }
+    }
+
+    private void recordRun(RunResult r) {
+        if (history == null || r.cancelled()) return;
+        try {
+            var nodes = new HashMap<String, Double>();
+            for (var t : r.timings()) nodes.put(t.nodeId(), t.millis());
+            history.recordRun(new nexus.store.WorkflowHistory.RunRecord(ws.name.get(), java.time.Instant.now(), r.millis(), (int) r.count(NodeStatus.DONE),
+                                                                        (int) r.count(NodeStatus.CACHED), (int) r.count(NodeStatus.ERROR),
+                                                                        (int) r.count(NodeStatus.SKIPPED), nodes));
+            if (historyPanel != null && historyPanel.isVisible()) historyPanel.refresh();
+        } catch (Exception e) {
+            log.add(LogPanel.Level.WARN, "could not record the run: " + e.getMessage());
+        }
+    }
+
+    private void restoreVersion(String json) {
+        try {
+            String name = ws.name.get();
+            ws.load(WorkflowFile.parse(json));
+            ws.name.set(name);
+            log.add(LogPanel.Level.OK, "restored an earlier version of " + name);
+            Platform.runLater(canvas::fitView);
+        } catch (IOException e) {
+            error("Cannot restore the version", e);
+        }
     }
 
     // ---- menus, toolbar, shortcuts -------------------------------------------------------------------------
@@ -405,6 +476,7 @@ public class NexusApp extends Application {
         try {
             ws.save(p, canvas.view());
             log.add(LogPanel.Level.OK, "saved " + p);
+            recordVersion("saved");
         } catch (IOException ex) {
             error("Cannot save the workflow", ex);
         }
