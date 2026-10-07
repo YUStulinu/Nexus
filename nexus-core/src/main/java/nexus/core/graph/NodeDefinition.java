@@ -20,10 +20,14 @@ import nexus.core.exec.NodeBehavior;
  * @param cacheable   whether an unchanged node may reuse its previous outputs (false for nodes that read
  *                    files or clocks, or are random)
  * @param view        which live view the UI shows inside the node ("text", "table", "chat", "chart", ...)
+ * @param contentKey  for nodes that read outside state (files): a cheap key of that state computed from
+ *                    the parameters at the start of a run (e.g. paths, sizes and modification times),
+ *                    added to the node's cache fingerprint - so the node stays cacheable and re-runs
+ *                    exactly when the files change. Null for pure nodes.
  */
 public record NodeDefinition(String id, String title, String category, String description, List<PortSpec> inputs,
                              List<PortSpec> outputs, List<ParamSpec> params, Supplier<NodeBehavior> behavior,
-                             boolean cacheable, String view) {
+                             boolean cacheable, String view, java.util.function.Function<java.util.Map<String, Object>, String> contentKey) {
 
     public NodeDefinition {
         Objects.requireNonNull(id);
@@ -75,6 +79,7 @@ public record NodeDefinition(String id, String title, String category, String de
         private final List<ParamSpec> params = new ArrayList<>();
         private boolean cacheable = true;
         private String view = "text";
+        private java.util.function.Function<java.util.Map<String, Object>, String> contentKey;
 
         private Builder(String id, String title, String category) {
             this.id = id;
@@ -112,8 +117,14 @@ public record NodeDefinition(String id, String title, String category, String de
             return this;
         }
 
+        /** See {@link NodeDefinition#contentKey()}. */
+        public Builder contentKey(java.util.function.Function<java.util.Map<String, Object>, String> f) {
+            contentKey = f;
+            return this;
+        }
+
         public NodeDefinition behavior(Supplier<NodeBehavior> b) {
-            return new NodeDefinition(id, title, category, description, inputs, outputs, params, b, cacheable, view);
+            return new NodeDefinition(id, title, category, description, inputs, outputs, params, b, cacheable, view, contentKey);
         }
     }
 }

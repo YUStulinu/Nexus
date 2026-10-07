@@ -217,7 +217,7 @@ public final class BasicNodes implements NodeLibrary {
                 .description("Reads a UTF-8 text file (.txt, .md, .csv, ...).")
                 .output(out("text", "text", TEXT)).output(out("name", "file name", TEXT))
                 .param(ParamSpec.file("path", "File", "The file to read"))
-                .notCacheable()
+                .contentKey(p -> FileKeys.of(String.valueOf(p.get("path"))))
                 .behavior(() -> ctx -> {
                     String p = ctx.paramText("path");
                     if (p.isBlank()) throw new IllegalArgumentException("choose a file");

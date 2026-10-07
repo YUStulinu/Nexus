@@ -1,0 +1,72 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "Ask your documents",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "docs.load",
+      "x": 40.0,
+      "y": 40.0,
+      "params": {
+        "folder": "examples/docs"
+      },
+      "title": "Documents"
+    },
+    {
+      "id": "n2",
+      "type": "docs.chunk",
+      "x": 370.0,
+      "y": 40.0,
+      "params": {}
+    },
+    {
+      "id": "n3",
+      "type": "index.build",
+      "x": 700.0,
+      "y": 40.0,
+      "params": {}
+    },
+    {
+      "id": "n4",
+      "type": "text.input",
+      "x": 40.0,
+      "y": 370.0,
+      "params": {
+        "text": "Câte zile pe săptămână pot lucra de acasă și de ce marțea trebuie să vin la birou?"
+      },
+      "title": "Question"
+    },
+    {
+      "id": "n5",
+      "type": "index.search",
+      "x": 700.0,
+      "y": 330.0,
+      "params": {
+        "k": 4.0
+      }
+    },
+    {
+      "id": "n6",
+      "type": "llm.ask",
+      "x": 1170.0,
+      "y": 200.0,
+      "params": {
+        "maxTokens": 400.0
+      }
+    }
+  ],
+  "edges": [
+    { "from": "n1.documents", "to": "n2.documents" },
+    { "from": "n2.chunks", "to": "n3.chunks" },
+    { "from": "n3.index", "to": "n5.index" },
+    { "from": "n4.text", "to": "n5.query" },
+    { "from": "n4.text", "to": "n6.question" },
+    { "from": "n5.context", "to": "n6.context" }
+  ],
+  "view": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

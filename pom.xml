@@ -13,6 +13,7 @@
 
   <modules>
     <module>nexus-core</module>
+    <module>nexus-ml</module>
     <module>nexus-engines</module>
     <module>nexus-app</module>
   </modules>

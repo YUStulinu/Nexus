@@ -348,6 +348,13 @@ public final class ExecutionEngine implements AutoCloseable {
             snap.edgeInto(id, in.key()).ifPresent(e -> sb.append(known.get(e.fromNode())).append('.').append(e.fromPort()));
         }
         if (!state.definition().cacheable()) sb.append("|volatile:").append(salt);
+        if (state.definition().contentKey() != null) {
+            try {
+                sb.append("|content:").append(state.definition().contentKey().apply(state.params()));
+            } catch (RuntimeException e) {
+                sb.append("|content-error:").append(salt);   // cannot tell: run it
+            }
+        }
         try {
             var md = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(md.digest(sb.toString().getBytes(StandardCharsets.UTF_8)), 0, 12);

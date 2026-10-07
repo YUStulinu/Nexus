@@ -42,7 +42,9 @@ public final class LogPanel extends ListView<LogPanel.Entry> {
     }
 
     public void add(Level level, String text) {
-        entries.add(new Entry(LocalTime.now().format(TIME), level, text));
+        var e = new Entry(LocalTime.now().format(TIME), level, text);
+        System.out.println(e.time() + " " + level + " " + text);   // the console mirrors the log panel
+        entries.add(e);
         if (entries.size() > LIMIT) entries.remove(0, entries.size() - LIMIT);
         scrollTo(entries.size() - 1);
     }
