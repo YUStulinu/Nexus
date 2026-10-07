@@ -99,7 +99,7 @@ public final class RagNodes implements NodeLibrary {
                             var d = DocumentLoader.load(paths.get(i));
                             docs.add(d);
                             table.row(d.title(), (double) d.pages().size(), (double) d.characters());
-                        } catch (Exception e) {
+                        } catch (java.io.IOException | RuntimeException e) {      // one unreadable file must not stop the rest
                             ctx.log("skipped " + paths.get(i).getFileName() + ": " + e.getMessage());
                         }
                     }

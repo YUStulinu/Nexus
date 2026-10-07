@@ -5,7 +5,7 @@
  */
 module nexus.games {
     requires transitive nexus.core;
-    requires nexus.engines;
+    requires transitive nexus.engines;      // GambitTraining takes the engines' VramBroker
     requires jdk.incubator.vector;
 
     exports nexus.games.rules;

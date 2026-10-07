@@ -150,16 +150,17 @@ class EngineTest {
         assertEquals(1, broker.state().leases().size());
 
         // a is answering: b cannot have its memory.
-        try (var busy = a.use()) {
-            var start = b.ensureStarted();
-            Thread.sleep(1500);
-            assertEquals(EngineState.STARTING, b.state(), "b waits for memory");
-            assertEquals(EngineState.READY, a.state());
-            assertEquals(1, broker.state().waiting().size());
-            // a finishes its answer; once idle long enough it is stopped and b starts.
-            busy.close();
-            start.get(30, java.util.concurrent.TimeUnit.SECONDS);
-        }
+        var busy = a.use();
+        var start = b.ensureStarted();
+        Thread.sleep(1500);
+        assertEquals(EngineState.STARTING, b.state(), "b waits for memory");
+        assertEquals(EngineState.READY, a.state());
+        assertEquals(1, broker.state().waiting().size());
+        // a finishes its answer; once idle long enough it is stopped and b starts.
+        busy.close();
+        busy.close();                               // closing twice must not count the request twice
+        assertEquals(0, a.inFlight());
+        start.get(30, java.util.concurrent.TimeUnit.SECONDS);
         assertEquals(EngineState.READY, b.state());
         assertEquals(EngineState.STOPPED, a.state());
         assertEquals(b.spec().name(), a.evictedFor());

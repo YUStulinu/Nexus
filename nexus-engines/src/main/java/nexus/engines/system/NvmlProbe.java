@@ -145,8 +145,9 @@ public final class NvmlProbe implements GpuProbe {
         if (closed) return;
         closed = true;
         try {
-            int ignored = (int) shutdown.invokeExact();
-        } catch (Throwable ignored) {
+            int rc = (int) shutdown.invokeExact();
+            if (rc != SUCCESS) System.getLogger(NvmlProbe.class.getName()).log(System.Logger.Level.DEBUG, "nvmlShutdown returned " + rc);
+        } catch (Throwable t) {
             // shutting down anyway
         }
         arena.close();

@@ -89,6 +89,10 @@ public class NexusApp extends Application {
     private nexus.app.panels.HistoryPanel historyPanel;
     private SplitPane center;
 
+    /** Created by JavaFX's launcher. */
+    public NexusApp() {
+    }
+
     public static void main(String[] args) {
         launch(args);
     }

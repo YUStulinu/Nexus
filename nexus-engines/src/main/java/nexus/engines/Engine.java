@@ -111,7 +111,9 @@ public final class Engine {
     public Use use() {
         inFlight.incrementAndGet();
         lastUsed = Instant.now();
+        var closed = new java.util.concurrent.atomic.AtomicBoolean();
         return () -> {
+            if (!closed.compareAndSet(false, true)) return;     // a second close must not count the request twice
             lastUsed = Instant.now();
             inFlight.decrementAndGet();
         };
@@ -225,7 +227,8 @@ public final class Engine {
         } catch (TimeoutException e) {
             throw new IllegalStateException(spec.name() + " did not become ready in " + timeout.toSeconds() + " s");
         } catch (java.util.concurrent.ExecutionException e) {
-            throw new IllegalStateException(spec.name() + ": " + e.getCause().getMessage(), e.getCause());
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            throw new IllegalStateException(spec.name() + ": " + cause.getMessage(), cause);
         }
     }
 

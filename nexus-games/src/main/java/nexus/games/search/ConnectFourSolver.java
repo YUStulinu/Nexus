@@ -18,7 +18,7 @@ import nexus.games.rules.Game;
  */
 public final class ConnectFourSolver {
     static final int W = ConnectFour.COLUMNS, H = ConnectFour.ROWS, CELLS = W * H;
-    static final int MIN_SCORE = -CELLS / 2 + 3, MAX_SCORE = (CELLS + 1) / 2 - 3;
+    static final int MIN_SCORE = -CELLS / 2 + 3;
     static final long BOTTOM = ConnectFour.BOTTOM_ROW, BOARD = ConnectFour.BOARD_MASK;
     private static final int[] COLUMN_ORDER = {3, 2, 4, 1, 5, 0, 6};
 

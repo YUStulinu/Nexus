@@ -16,6 +16,10 @@ public final class ConnectFour implements Game {
     int moves;
     Outcome outcome = Outcome.ONGOING;
 
+    /** The empty starting position. */
+    public ConnectFour() {
+    }
+
     @Override
     public String name() {
         return "connect4";

@@ -12,6 +12,9 @@ public abstract class NodeBody extends Region {
     /** What a body may reach outside its node (set once, right after construction). */
     protected BodyContext context;
 
+    protected NodeBody() {
+    }
+
     public void bind(BodyContext c) {
         context = c;
     }

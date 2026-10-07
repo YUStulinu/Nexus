@@ -14,6 +14,10 @@ public final class Gomoku implements Game {
     int moves;
     Outcome outcome = Outcome.ONGOING;
 
+    /** The empty starting position. */
+    public Gomoku() {
+    }
+
     @Override
     public String name() {
         return "gomoku";

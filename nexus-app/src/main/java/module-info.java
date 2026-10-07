@@ -3,15 +3,16 @@
  * node views, the run timeline and log.
  */
 module nexus.app {
-    requires javafx.controls;
-    requires nexus.core;
-    requires nexus.engines;
+    // transitive: the exported panels and views show JavaFX, core and engine types in their API
+    requires transitive javafx.controls;
+    requires transitive nexus.core;
+    requires transitive nexus.engines;
     requires nexus.games;
-    requires nexus.store;
+    requires transitive nexus.store;
     requires nexus.ml;
     requires java.logging;
 
-    exports nexus.app to javafx.graphics;
+    exports nexus.app;                      // the Application class, and Workspace (used by the exported panels)
     exports nexus.app.canvas;
     exports nexus.app.panels;
     exports nexus.app.views;
