@@ -60,10 +60,12 @@ import nexus.core.registry.NodeRegistry;
  *   --wait SECONDS                 wait before the screenshot (default 2)
  *   --screenshot FILE.png          save a screenshot of the window, then exit
  *   --size WIDTHxHEIGHT            window size (default 1500x900)
+ *   --chat NODE_ID:MESSAGE         type a message into a Conversation node
  * </pre>
  */
 public class NexusApp extends Application {
-    public static final List<String> EXAMPLES = List.of("Text analysis", "Parallel branches", "Formula");
+    public static final List<String> EXAMPLES = List.of("Text analysis", "Parallel branches", "Formula", "Brief and quiz with Ember",
+                                                        "Model duel", "Chat with a document");
 
     /** Extra services and node libraries, contributed by other modules before launch. */
     public static final Services SERVICES = new Services();
@@ -86,6 +88,9 @@ public class NexusApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         this.stage = stage;
+        nexus.app.views.LlmViews.register();
+        var engines = nexus.engines.EngineManager.instance();
+        SERVICES.register(nexus.engines.EngineManager.class, engines);
         var registry = NodeRegistry.discover();
         ws = new Workspace(registry, SERVICES);
         canvas = new GraphCanvas(ws);
@@ -158,7 +163,8 @@ public class NexusApp extends Application {
             var c = canvas.toWorld(canvas.getWidth() / 2, canvas.getHeight() / 2);
             canvas.addNode(def, c.getX() - 110, c.getY() - 60);
         });
-        var bottom = new TabPane(new Tab("Timeline", timeline), new Tab("Log", log));
+        var bottom = new TabPane(new Tab("Timeline", timeline), new Tab("Log", log),
+                                 new Tab("Engines", new nexus.app.panels.EnginesPanel(engines)));
         bottom.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         var center = new SplitPane(canvas, bottom);
         center.setOrientation(Orientation.VERTICAL);
@@ -191,7 +197,7 @@ public class NexusApp extends Application {
         updateTitle();
         stage.setOnCloseRequest(e -> {
             if (!confirmDiscard()) e.consume();
-            else ws.engine.close();
+            else shutdown();
         });
         var timer = new javafx.animation.AnimationTimer() {
             @Override
@@ -204,6 +210,13 @@ public class NexusApp extends Application {
         stage.show();
         if (params.isEmpty() && raw.isEmpty()) loadExample("Text analysis");
         else Platform.runLater(() -> applyOptions(opts));
+    }
+
+    /** Stops runs and every engine process NEXUS started. */
+    private void shutdown() {
+        ws.stop();
+        ws.engine.close();
+        Thread.ofVirtual().start(() -> nexus.engines.EngineManager.instance().close());
     }
 
     // ---- menus, toolbar, shortcuts -------------------------------------------------------------------------
@@ -434,6 +447,13 @@ public class NexusApp extends Application {
                 canvas.fitView();
                 if (o.containsKey("select")) canvas.select(o.get("select"), false);
                 if (o.containsKey("run")) ws.run(null);
+                if (o.containsKey("chat")) {
+                    // --chat "nodeId:message": types a message into a conversation node (after the run settles)
+                    String[] parts = o.get("chat").split(":", 2);
+                    var later = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(1.5));
+                    later.setOnFinished(e -> canvas.view(parts[0]).ifPresent(v -> v.body().submit(parts[1])));
+                    later.play();
+                }
                 if (o.containsKey("screenshot")) {
                     double wait = Double.parseDouble(o.getOrDefault("wait", "2"));
                     var pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(wait));
@@ -443,7 +463,7 @@ public class NexusApp extends Application {
                         } catch (IOException ex) {
                             ex.printStackTrace();
                         }
-                        ws.engine.close();
+                        shutdown();
                         Platform.exit();
                     });
                     pause.play();

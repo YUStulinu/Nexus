@@ -1,0 +1,37 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "Model duel",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "text.input",
+      "x": 40.0,
+      "y": 120.0,
+      "params": {
+        "text": "Explică în trei propoziții ce este o rețea neuronală."
+      },
+      "title": "Prompt"
+    },
+    {
+      "id": "n2",
+      "type": "llm.duel",
+      "x": 380.0,
+      "y": 60.0,
+      "params": {
+        "maxTokens": 300.0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "n1.text",
+      "to": "n2.prompt"
+    }
+  ],
+  "view": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

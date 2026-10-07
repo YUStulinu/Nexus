@@ -5,6 +5,7 @@
 module nexus.app {
     requires javafx.controls;
     requires nexus.core;
+    requires nexus.engines;
     requires java.logging;
 
     exports nexus.app to javafx.graphics;

@@ -1,0 +1,64 @@
+{
+  "format": "nexus-workflow",
+  "version": 1,
+  "name": "Brief and quiz with Ember",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "text.input",
+      "x": 40.0,
+      "y": 180.0,
+      "params": {
+        "text": "Inteligența artificială este un domeniu al informaticii care studiază cum pot fi construite sisteme capabile să învețe din date. Rețelele neuronale moderne învață din milioane de exemple și pot traduce texte, recunoaște imagini sau juca jocuri la nivel de campion.\n\nAlphaZero a învățat șahul, go și shogi jucând doar împotriva lui însuși. Nu a primit nicio partidă umană, ci doar regulile jocului. După câteva ore de antrenament, a depășit cele mai puternice programe existente.\n\nModelele de limbaj precum GPT generează text cuvânt cu cuvânt. Fiecare cuvânt nou este ales pe baza tuturor cuvintelor de dinainte. Echipa trebuie să predea raportul final până vineri, 14 noiembrie, iar Maria se ocupă de grafice."
+      },
+      "title": "Article"
+    },
+    {
+      "id": "n2",
+      "type": "llm.brief",
+      "x": 440.0,
+      "y": 20.0,
+      "params": {
+        "language": "Romanian",
+        "maxTokens": 500.0
+      }
+    },
+    {
+      "id": "n3",
+      "type": "llm.quiz",
+      "x": 860.0,
+      "y": 20.0,
+      "params": {
+        "questions": 3.0,
+        "language": "Romanian",
+        "maxTokens": 600.0
+      }
+    },
+    {
+      "id": "n4",
+      "type": "text.stats",
+      "x": 40.0,
+      "y": 420.0,
+      "params": {}
+    }
+  ],
+  "edges": [
+    {
+      "from": "n1.text",
+      "to": "n2.text"
+    },
+    {
+      "from": "n1.text",
+      "to": "n3.text"
+    },
+    {
+      "from": "n1.text",
+      "to": "n4.text"
+    }
+  ],
+  "view": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  }
+}

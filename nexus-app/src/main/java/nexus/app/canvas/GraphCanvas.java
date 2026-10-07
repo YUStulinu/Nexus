@@ -252,7 +252,33 @@ public final class GraphCanvas extends Pane {
     // ---- views ----------------------------------------------------------------------------------------------
 
     private void addView(NodeInstance n) {
-        var v = new NodeView(n);
+        String id = n.id();
+        var v = new NodeView(n, new nexus.app.views.BodyContext() {
+            @Override
+            public String nodeId() {
+                return id;
+            }
+
+            @Override
+            public nexus.core.exec.Services services() {
+                return ws.services;
+            }
+
+            @Override
+            public Object param(String key) {
+                return ws.graph.node(id).param(key);
+            }
+
+            @Override
+            public Map<String, Object> lastOutputs() {
+                return ws.engine.lastOutputs(id);
+            }
+
+            @Override
+            public void setParam(String key, Object value) {
+                ws.stack.execute(new Commands.SetParam(id, key, value));
+            }
+        });
         views.put(n.id(), v);
         nodeLayer.getChildren().add(v);
         v.applyCss();

@@ -8,24 +8,15 @@
     <artifactId>nexus-parent</artifactId>
     <version>0.1.0</version>
   </parent>
-  <artifactId>nexus-app</artifactId>
-  <name>NEXUS app</name>
-  <description>The JavaFX desktop application: the node editor, the live views and the dashboards.</description>
+  <artifactId>nexus-engines</artifactId>
+  <name>NEXUS engines</name>
+  <description>Supervises the external engines (Ember, Kindling, Anvil, Gambit) and provides their nodes.</description>
 
   <dependencies>
     <dependency>
       <groupId>nexus</groupId>
       <artifactId>nexus-core</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>nexus</groupId>
-      <artifactId>nexus-engines</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.openjfx</groupId>
-      <artifactId>javafx-controls</artifactId>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -35,21 +26,20 @@
 
   <build>
     <plugins>
-      <!-- Copies every runtime dependency to target/lib: with the app jar this is the module path
-           the launcher scripts (nexus.cmd / nexus.sh) start the application from. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
+        <artifactId>maven-compiler-plugin</artifactId>
         <executions>
           <execution>
-            <id>copy-libs</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
+            <id>default-testCompile</id>
             <configuration>
-              <outputDirectory>${project.build.directory}/lib</outputDirectory>
-              <includeScope>runtime</includeScope>
+              <!-- the fake engine server in the tests uses the JDK's built-in HTTP server -->
+              <compilerArgs combine.children="append">
+                <arg>--add-modules</arg>
+                <arg>jdk.httpserver</arg>
+                <arg>--add-reads</arg>
+                <arg>nexus.engines=jdk.httpserver</arg>
+              </compilerArgs>
             </configuration>
           </execution>
         </executions>

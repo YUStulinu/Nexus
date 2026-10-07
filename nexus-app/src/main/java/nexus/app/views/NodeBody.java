@@ -9,6 +9,13 @@ import nexus.core.exec.NodeStatus;
  * list...) and, while it runs, what it is producing. One kind per {@code NodeDefinition.view()}.
  */
 public abstract class NodeBody extends Region {
+    /** What a body may reach outside its node (set once, right after construction). */
+    protected BodyContext context;
+
+    public void bind(BodyContext c) {
+        context = c;
+    }
+
     /** Width the body is laid out at (the node's width minus padding). */
     public abstract double preferredHeight();
 
@@ -25,6 +32,11 @@ public abstract class NodeBody extends Region {
 
     /** The node's outputs after it finished (or was served from the cache). */
     public void outputs(Map<String, Object> outputs) {
+    }
+
+    /** Types text into the body and submits it, for bodies with an input (chat); false if not supported. */
+    public boolean submit(String text) {
+        return false;
     }
 
     /** Whether mouse presses inside should reach the body's controls instead of starting a node drag. */

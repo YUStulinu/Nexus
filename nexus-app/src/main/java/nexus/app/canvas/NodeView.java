@@ -55,12 +55,14 @@ public final class NodeView extends Region {
     private NodeStatus current = NodeStatus.IDLE;
     private boolean selected;
 
-    public NodeView(NodeInstance node) {
+    public NodeView(NodeInstance node, nexus.app.views.BodyContext bodyContext) {
         this.node = node;
         getStyleClass().add("node-view");
         var def = node.definition();
         width = switch (def.view()) {
-            case "preview" -> 330;
+            case "preview", "llm" -> 340;
+            case "chat-session" -> 380;
+            case "duel" -> 560;
             case "table", "list" -> 290;
             default -> 236;
         };
@@ -80,6 +82,7 @@ public final class NodeView extends Region {
         for (var p : def.outputs()) addPort(p, false, row++);
 
         body = Bodies.create(def.view());
+        body.bind(bodyContext);
         getChildren().add(body);
         setTitle(node.title());
         relocate(node.x(), node.y());
