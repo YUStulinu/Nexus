@@ -90,13 +90,20 @@ public final class GameViews {
         @Override
         public void bind(BodyContext c) {
             super.bind(c);
+            // The node's parameters may be applied just after the view is created: look a moment later.
+            Platform.runLater(this::newGame);
+        }
+
+        /** The network for the node's current game: the one wired in (after a run), else Gambit's own. */
+        private void loadModelThen(Runnable then) {
+            String wanted = String.valueOf(context.param("game"));
             Thread.ofVirtual().start(() -> {
                 try {
-                    var m = c.lastOutputs().get("model") instanceof GameNodes.Model lm ? lm
-                            : GameNodes.load(GameNodes.defaultModel(String.valueOf(c.param("game"))), "Gambit " + c.param("game"));
+                    var m = context.lastOutputs().get("model") instanceof GameNodes.Model lm && lm.game().equals(wanted) ? lm
+                            : GameNodes.load(GameNodes.defaultModel(wanted), "Gambit " + wanted);
                     Platform.runLater(() -> {
                         model = m;
-                        newGame();
+                        then.run();
                     });
                 } catch (Exception ex) {
                     Platform.runLater(() -> status.setText("cannot load the network: " + ex.getMessage()));
@@ -159,7 +166,10 @@ public final class GameViews {
         }
 
         private void newGame() {
-            if (model == null) return;
+            if (model == null || !model.game().equals(String.valueOf(context.param("game")))) {
+                loadModelThen(this::newGame);
+                return;
+            }
             epoch.incrementAndGet();
             game = Game.create(model.game());
             history.clear();
@@ -211,15 +221,20 @@ public final class GameViews {
         private void afterMove() {
             solverScores = null;
             if (game.isOver()) {
-                status.setText(game.outcome() == Game.Outcome.DRAW ? "Draw." : (game.sideToMove() == 1 ? "First player" : "Second player") + " wins.");
+                status.setText(game.outcome() == Game.Outcome.DRAW ? "Draw." : sideName(1 - game.sideToMove()) + " wins.");
                 draw();
                 return;
             }
-            String side = game.sideToMove() == 0 ? "First player (red)" : "Second player (yellow)";
+            String side = sideName(game.sideToMove());
             status.setText(humanToMove() ? side + " to move - your turn" : side + " to move - the AI is thinking");
             analyseWithSolver();
             draw();
             if (!humanToMove()) think(true);
+        }
+
+        private String sideName(int side) {
+            boolean c4 = game instanceof ConnectFour;
+            return side == 0 ? (c4 ? "Red (first)" : "Black (first)") : (c4 ? "Yellow (second)" : "White (second)");
         }
 
         /** Runs the search; plays the best move when {@code play}, otherwise only shows it (a hint). */
@@ -291,7 +306,7 @@ public final class GameViews {
         private void grade(Game before, int move) {
             if (!(before instanceof ConnectFour c4) || !Boolean.TRUE.equals(context.param("solver"))) return;
             int ply = c4.ply();
-            String who = c4.sideToMove() == 0 ? "Red" : "Yellow";
+            String who = c4.sideToMove() == 0 ? "Red" : "Yellow";       // Connect Four only
             Thread.ofVirtual().start(() -> {
                 var solver = new ConnectFourSolver(22);
                 long deadline = System.currentTimeMillis() + 4000;
@@ -472,7 +487,7 @@ public final class GameViews {
                 g.setFill(Color.web("#111318"));
                 g.setFont(Font.font("System", FontWeight.BOLD, 9.5));
                 g.setTextAlign(TextAlignment.LEFT);
-                g.fillText(String.format(Locale.ROOT, "AI's winning chance for %s: %.0f%%", side == 0 ? "red/black" : "yellow/white", 100 * p),
+                g.fillText(String.format(Locale.ROOT, "AI's winning chance for %s: %.0f%%", sideName(side).replaceAll(" .*", "").toLowerCase(Locale.ROOT), 100 * p),
                            ox + 6, by + 6.5);
             }
         }
